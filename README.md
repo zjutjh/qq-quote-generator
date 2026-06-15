@@ -35,13 +35,13 @@ docker build -t qq-quote-go .
 docker run -d \
   --name qq-quote-go \
   --restart unless-stopped \
-  -p 5000:5000 \
+  -p 8080:5000 \
   -e POOL_SIZE=4 \
   qq-quote-go
 ```
 
 > **提示：** 
-> - `-p 5000:5000`：将容器的 5000 端口映射到宿主机 5000 端口。
+> - `-p 8080:5000`：将容器的 5000 端口映射到宿主机 8080 端口。
 > - `-e POOL_SIZE=4`：配置浏览器的页面渲染并发池大小，建议设置为 CPU 核心数。
 
 ### 3. 测试调用
@@ -49,7 +49,7 @@ docker run -d \
 容器启动后，可以直接使用 curl 进行调用测试，将结果保存为 `out.png`：
 
 ```bash
-curl -X POST http://localhost:5000/png/ \
+curl -X POST http://localhost:8080/png/ \
   -H "Content-Type: application/json" \
   -d '[{"user_id": 10000, "user_nickname": "管理员", "message": "Docker 部署成功啦！"}]' \
   -o out.png
@@ -70,7 +70,7 @@ go run .
 ### POST /png/
 
 ```bash
-curl -X POST http://localhost:5000/png/ \
+curl -X POST http://localhost:8080/png/ \
   -H "Content-Type: application/json" \
   -d '[{"user_id": 12345, "user_nickname": "张三", "message": "Hello!"}]' \
   -o out.png

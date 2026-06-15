@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"os"
+
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
@@ -19,15 +21,20 @@ type BrowserPool struct {
 
 // NewBrowserPool 启动 Chromium 并预热 size 个 Page。
 func NewBrowserPool(size int) (*BrowserPool, error) {
-	u, err := launcher.New().
+	l := launcher.New().
 		Headless(true).
 		Set("disable-gpu", "").
 		Set("no-sandbox", "").
 		Set("disable-dev-shm-usage", "").
 		Set("disable-extensions", "").
 		Set("disable-background-networking", "").
-		Set("disable-sync", "").
-		Launch()
+		Set("disable-sync", "")
+
+	if bin := os.Getenv("ROD_BROWSER_BIN"); bin != "" {
+		l = l.Bin(bin)
+	}
+
+	u, err := l.Launch()
 	if err != nil {
 		return nil, fmt.Errorf("launcher: %w", err)
 	}
