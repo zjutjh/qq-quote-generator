@@ -14,8 +14,24 @@ const quoteHTML = `<!DOCTYPE html>
     font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   }
 
+  .theme-dark {
+    --card-bg: #1e1e2e;
+    --avatar-bg: #333;
+    --name-color: #7c7f93;
+    --bubble-bg: #313244;
+    --text-color: #cdd6f4;
+  }
+
+  .theme-light {
+    --card-bg: #f7f8fb;
+    --avatar-bg: #d9dee8;
+    --name-color: #667085;
+    --bubble-bg: #ffffff;
+    --text-color: #242937;
+  }
+
   #app {
-    background: #1e1e2e;
+    background: var(--card-bg);
     padding: 16px 12px;
     min-width: 0;
     max-width: 600px;
@@ -39,7 +55,7 @@ const quoteHTML = `<!DOCTYPE html>
     border-radius: 50%;
     flex-shrink: 0;
     object-fit: cover;
-    background: #333;
+    background: var(--avatar-bg);
   }
 
   .content {
@@ -49,7 +65,7 @@ const quoteHTML = `<!DOCTYPE html>
 
   .nickname {
     font-size: 12px;
-    color: #7c7f93;
+    color: var(--name-color);
     margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
@@ -57,7 +73,7 @@ const quoteHTML = `<!DOCTYPE html>
   }
 
   .bubble {
-    background: #313244;
+    background: var(--bubble-bg);
     border-radius: 4px 12px 12px 12px;
     padding: 8px 12px;
     display: inline-block;
@@ -66,7 +82,7 @@ const quoteHTML = `<!DOCTYPE html>
   }
 
   .bubble-text {
-    color: #cdd6f4;
+    color: var(--text-color);
     font-size: 15px;
     line-height: 1.6;
     white-space: pre-wrap;
@@ -86,7 +102,7 @@ const quoteHTML = `<!DOCTYPE html>
 </style>
 </head>
 <body>
-<div id="app">
+<div id="app" class="{{.Theme}}">
 {{- range .Messages}}
   <div class="message-row">
     {{- if .Avatar}}

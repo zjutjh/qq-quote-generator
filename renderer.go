@@ -36,7 +36,7 @@ func (r *Renderer) Render(messages []Message) ([]byte, error) {
 
 	// 2. 渲染 HTML 模板到字符串
 	var buf bytes.Buffer
-	if err := r.tmpl.Execute(&buf, renderData{Messages: processed}); err != nil {
+	if err := r.tmpl.Execute(&buf, renderData{Messages: processed, Theme: themeForTime(time.Now())}); err != nil {
 		return nil, fmt.Errorf("template: %w", err)
 	}
 	html := buf.String()
@@ -67,6 +67,17 @@ func (r *Renderer) Render(messages []Message) ([]byte, error) {
 	}
 
 	return png, nil
+}
+
+func themeForTime(t time.Time) string {
+	return themeForHour(t.Hour())
+}
+
+func themeForHour(hour int) string {
+	if hour >= 6 && hour < 18 {
+		return "theme-light"
+	}
+	return "theme-dark"
 }
 
 // RenderBase64 返回 base64 编码的 PNG
