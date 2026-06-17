@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"html/template"
 	"strings"
 	"testing"
 )
@@ -36,5 +38,37 @@ func TestTemplateIncludesLightAndDarkThemes(t *testing.T) {
 		if !strings.Contains(quoteHTML, want) {
 			t.Fatalf("template missing %q", want)
 		}
+	}
+}
+
+func TestTemplateAllowsDataURIImageSources(t *testing.T) {
+	tmpl := template.Must(template.New("quote").Parse(quoteHTML))
+	var buf bytes.Buffer
+	err := tmpl.Execute(&buf, renderData{
+		Theme: "theme-dark",
+		Messages: []processedMessage{{
+			Nickname: "张三",
+			Avatar:   safeImageURL("data:image/png;base64,YXZhdGFy"),
+			Segments: processMessageSegments([]MessageSegment{{
+				Type: "image",
+				URL:  "data:image/png;base64,cG5nLWRhdGE=",
+			}}),
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := buf.String()
+	if strings.Contains(html, "#ZgotmplZ") {
+		t.Fatalf("template blocked a data URI: %s", html)
+	}
+	if !strings.Contains(html, "data:image/png;base64,cG5nLWRhdGE=") {
+		t.Fatalf("template did not preserve image data URI: %s", html)
+	}
+}
+
+func TestSafeImageURLRejectsScriptSources(t *testing.T) {
+	if got := safeImageURL("javascript:alert(1)"); got != "" {
+		t.Fatalf("safeImageURL accepted script source: %q", got)
 	}
 }

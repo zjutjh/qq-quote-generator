@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-rod/rod/lib/proto"
@@ -97,18 +98,41 @@ func (r *Renderer) processMessages(messages []Message) ([]processedMessage, erro
 	for _, msg := range messages {
 		pm := processedMessage{
 			Nickname: msg.UserNickname,
-			Avatar:   resolveAvatar(client, msg),
+			Avatar:   safeImageURL(resolveAvatar(client, msg)),
 		}
 
 		segs, err := parseMessageField(msg.Message)
 		if err != nil {
 			return nil, err
 		}
-		pm.Segments = segs
+		pm.Segments = processMessageSegments(segs)
 
 		result = append(result, pm)
 	}
 	return result, nil
+}
+
+func processMessageSegments(segments []MessageSegment) []processedMessageSegment {
+	result := make([]processedMessageSegment, 0, len(segments))
+	for _, segment := range segments {
+		result = append(result, processedMessageSegment{
+			Type: segment.Type,
+			Text: segment.Text,
+			URL:  safeImageURL(segment.URL),
+		})
+	}
+	return result
+}
+
+func safeImageURL(raw string) template.URL {
+	raw = strings.TrimSpace(raw)
+	lower := strings.ToLower(raw)
+	switch {
+	case strings.HasPrefix(lower, "http://"), strings.HasPrefix(lower, "https://"), strings.HasPrefix(lower, "data:image/"):
+		return template.URL(raw)
+	default:
+		return ""
+	}
 }
 
 // resolveAvatar 返回可嵌入 <img src> 的头像值
