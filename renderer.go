@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/go-rod/rod/lib/proto"
 )
+
+const defaultRenderTimeout = 8 * time.Second
 
 // Renderer 持有 HTML 模板和 Page 池的引用
 type Renderer struct {
@@ -28,7 +31,10 @@ func NewRenderer(pool *BrowserPool) (*Renderer, error) {
 }
 
 // Render 处理一批消息，返回 PNG bytes
-func (r *Renderer) Render(messages []Message) ([]byte, error) {
+func (r *Renderer) Render(ctx context.Context, messages []Message) (png []byte, err error) {
+	ctx, cancel := context.WithTimeout(ctx, defaultRenderTimeout)
+	defer cancel()
+
 	// 1. 预处理消息（解析 message 字段、拼装头像 URL）
 	processed, err := r.processMessages(messages)
 	if err != nil {
@@ -43,30 +49,46 @@ func (r *Renderer) Render(messages []Message) ([]byte, error) {
 	html := buf.String()
 
 	// 3. 从池中取一个 Page，注入 HTML，截图，归还
-	page := r.pool.Acquire()
-	defer r.pool.Release(page)
+	page, err := r.pool.Acquire(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("acquire page: %w", err)
+	}
+	pageOK := false
+	defer func() {
+		if pageOK {
+			r.pool.Release(page)
+			return
+		}
+		r.pool.Replace(page)
+	}()
+
+	renderPage := page.Context(ctx)
 
 	// SetContent 直接注入 HTML，完全避免本地 HTTP round trip
 	// rod 的 Navigate + SetDocumentContent 方式
-	if err := page.Navigate("about:blank"); err != nil {
+	if err := renderPage.Navigate("about:blank"); err != nil {
 		return nil, fmt.Errorf("navigate: %w", err)
 	}
 
 	// 用 CDP 直接设置页面内容
-	if err := page.SetDocumentContent(html); err != nil {
+	if err := renderPage.SetDocumentContent(html); err != nil {
 		return nil, fmt.Errorf("setContent: %w", err)
 	}
 
-	// 等待页面空闲（图片、字体加载完成）
-	page.MustWaitIdle()
+	// 等待页面短暂空闲；外部图片慢或失效时不能阻塞整个请求。
+	_ = renderPage.WaitIdle(500 * time.Millisecond)
 
 	// 只截取 #app 元素，高度自适应内容
-	el := page.MustElement("#app")
-	png, err := el.Screenshot(proto.PageCaptureScreenshotFormatPng, 90)
+	el, err := renderPage.Element("#app")
+	if err != nil {
+		return nil, fmt.Errorf("element #app: %w", err)
+	}
+	png, err = el.Screenshot(proto.PageCaptureScreenshotFormatPng, 90)
 	if err != nil {
 		return nil, fmt.Errorf("screenshot: %w", err)
 	}
 
+	pageOK = true
 	return png, nil
 }
 
@@ -82,8 +104,8 @@ func themeForHour(hour int) string {
 }
 
 // RenderBase64 返回 base64 编码的 PNG
-func (r *Renderer) RenderBase64(messages []Message) (string, error) {
-	png, err := r.Render(messages)
+func (r *Renderer) RenderBase64(ctx context.Context, messages []Message) (string, error) {
+	png, err := r.Render(ctx, messages)
 	if err != nil {
 		return "", err
 	}

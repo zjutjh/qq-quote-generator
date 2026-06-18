@@ -44,7 +44,7 @@ func main() {
 			return
 		}
 
-		png, err := renderer.Render(messages)
+		png, err := renderer.Render(c.Request.Context(), messages)
 		if err != nil {
 			log.Printf("render error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -62,7 +62,7 @@ func main() {
 			return
 		}
 
-		b64, err := renderer.RenderBase64(messages)
+		b64, err := renderer.RenderBase64(c.Request.Context(), messages)
 		if err != nil {
 			log.Printf("render error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

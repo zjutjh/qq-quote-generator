@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -43,13 +44,9 @@ func NewBrowserPool(size int) (*BrowserPool, error) {
 
 	pool := make(chan *rod.Page, size)
 	for i := 0; i < size; i++ {
-		page, err := browser.Page(proto.TargetCreateTarget{URL: "about:blank"})
+		page, err := newPoolPage(browser)
 		if err != nil {
 			return nil, fmt.Errorf("create page %d: %w", i, err)
-		}
-		// 固定视口宽度；高度由截图元素决定
-		if err := page.SetViewport(&proto.EmulationSetDeviceMetricsOverride{Width: 800, Height: 600, DeviceScaleFactor: 1}); err != nil {
-			log.Printf("warn: set viewport: %v", err)
 		}
 		pool <- page
 	}
@@ -61,9 +58,26 @@ func NewBrowserPool(size int) (*BrowserPool, error) {
 	}, nil
 }
 
+func newPoolPage(browser *rod.Browser) (*rod.Page, error) {
+	page, err := browser.Page(proto.TargetCreateTarget{URL: "about:blank"})
+	if err != nil {
+		return nil, err
+	}
+	// 固定视口宽度；高度由截图元素决定
+	if err := page.SetViewport(&proto.EmulationSetDeviceMetricsOverride{Width: 800, Height: 600, DeviceScaleFactor: 1}); err != nil {
+		log.Printf("warn: set viewport: %v", err)
+	}
+	return page, nil
+}
+
 // Acquire 阻塞直到有空闲 Page 可用。
-func (p *BrowserPool) Acquire() *rod.Page {
-	return <-p.pool
+func (p *BrowserPool) Acquire(ctx context.Context) (*rod.Page, error) {
+	select {
+	case page := <-p.pool:
+		return page, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 // Release 将 Page 归还池中。
@@ -71,11 +85,27 @@ func (p *BrowserPool) Release(page *rod.Page) {
 	p.pool <- page
 }
 
-// Close 关闭所有 Page 和浏览器进程。
-func (p *BrowserPool) Close() {
-	for i := 0; i < p.size; i++ {
-		page := <-p.pool
+func (p *BrowserPool) Replace(page *rod.Page) {
+	if page != nil {
 		_ = page.Close()
 	}
-	_ = p.browser.Close()
+	newPage, err := newPoolPage(p.browser)
+	if err != nil {
+		log.Printf("replace page failed: %v", err)
+		return
+	}
+	p.pool <- newPage
+}
+
+// Close 关闭所有 Page 和浏览器进程。
+func (p *BrowserPool) Close() {
+	for {
+		select {
+		case page := <-p.pool:
+			_ = page.Close()
+		default:
+			_ = p.browser.Close()
+			return
+		}
+	}
 }
