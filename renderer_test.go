@@ -72,3 +72,27 @@ func TestSafeImageURLRejectsScriptSources(t *testing.T) {
 		t.Fatalf("safeImageURL accepted script source: %q", got)
 	}
 }
+
+func TestTemplateUsesCompactImageClassesForEmojiAndSticker(t *testing.T) {
+	if !strings.Contains(quoteHTML, ".bubble-img-emoji") {
+		t.Fatal("template should include compact emoji image styling")
+	}
+	if !strings.Contains(quoteHTML, ".bubble-img-sticker") {
+		t.Fatal("template should include compact sticker image styling")
+	}
+
+	segments := processMessageSegments([]MessageSegment{
+		{Type: "image", Kind: "emoji", URL: "data:image/png;base64,ZW1vamk="},
+		{Type: "image", Kind: "sticker", URL: "data:image/png;base64,c3RpY2tlcg=="},
+		{Type: "image", URL: "https://example.com/photo.png"},
+	})
+	if segments[0].ImageClass != "bubble-img bubble-img-emoji" {
+		t.Fatalf("emoji class = %q", segments[0].ImageClass)
+	}
+	if segments[1].ImageClass != "bubble-img bubble-img-sticker" {
+		t.Fatalf("sticker class = %q", segments[1].ImageClass)
+	}
+	if segments[2].ImageClass != "bubble-img" {
+		t.Fatalf("image class = %q", segments[2].ImageClass)
+	}
+}

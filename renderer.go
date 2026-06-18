@@ -116,12 +116,25 @@ func processMessageSegments(segments []MessageSegment) []processedMessageSegment
 	result := make([]processedMessageSegment, 0, len(segments))
 	for _, segment := range segments {
 		result = append(result, processedMessageSegment{
-			Type: segment.Type,
-			Text: segment.Text,
-			URL:  safeImageURL(segment.URL),
+			Type:       segment.Type,
+			Kind:       segment.Kind,
+			Text:       segment.Text,
+			URL:        safeImageURL(segment.URL),
+			ImageClass: imageClassForKind(segment.Kind),
 		})
 	}
 	return result
+}
+
+func imageClassForKind(kind string) string {
+	switch kind {
+	case "emoji":
+		return "bubble-img bubble-img-emoji"
+	case "sticker":
+		return "bubble-img bubble-img-sticker"
+	default:
+		return "bubble-img"
+	}
 }
 
 func safeImageURL(raw string) template.URL {

@@ -5,6 +5,7 @@ import "html/template"
 // MessageSegment 对应消息中的单个内容片段（文本或图片）
 type MessageSegment struct {
 	Type string `json:"type"` // "text" | "image"
+	Kind string `json:"kind,omitempty"`
 	Text string `json:"text,omitempty"`
 	URL  string `json:"url,omitempty"` // 图片 URL 或 base64 data URI
 }
@@ -34,7 +35,9 @@ type processedMessage struct {
 }
 
 type processedMessageSegment struct {
-	Type string
-	Text string
-	URL  template.URL
+	Type       string
+	Kind       string
+	Text       string
+	URL        template.URL
+	ImageClass string
 }

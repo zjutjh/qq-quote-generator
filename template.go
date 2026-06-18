@@ -93,6 +93,21 @@ const quoteHTML = `<!DOCTYPE html>
     max-height: 200px;
     border-radius: 6px;
     display: block;
+    object-fit: contain;
+  }
+
+  .bubble-img-emoji {
+    width: 42px;
+    height: 42px;
+    max-width: 42px;
+    max-height: 42px;
+    border-radius: 0;
+  }
+
+  .bubble-img-sticker {
+    max-width: 96px;
+    max-height: 96px;
+    border-radius: 0;
   }
 
   /* 图文混排：图片和文字间加间距 */
@@ -117,7 +132,7 @@ const quoteHTML = `<!DOCTYPE html>
           {{- if eq .Type "text"}}
           <div class="seg bubble-text">{{.Text}}</div>
           {{- else if eq .Type "image"}}
-          <div class="seg"><img class="bubble-img" src="{{.URL}}"></div>
+          <div class="seg"><img class="{{.ImageClass}}" src="{{.URL}}"></div>
           {{- end}}
         {{- end}}
       </div>
