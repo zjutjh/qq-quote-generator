@@ -98,7 +98,7 @@ go build -trimpath -ldflags "-s -w" -o qq-quote-generator.exe .
 ### Alpine
 
 ```bash
-apk add --no-cache go rust cargo git gcc musl-dev fontconfig font-noto-cjk
+apk add --no-cache go rust cargo git gcc musl-dev libunwind-dev fontconfig font-noto-cjk
 sh scripts/build-resvg.sh
 CGO_LDFLAGS="$(cat internal/resvg/lib/linux-amd64/native-static-libs.txt)" \
   CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
@@ -161,7 +161,7 @@ Dockerfile 使用三个阶段：
 
 1. Rust 阶段编译 resvg 0.47.0；
 2. Go 阶段启用 CGO 并链接静态库；
-3. Alpine 运行阶段安装 CA 证书、fontconfig 和 Noto CJK 字体。
+3. Alpine 运行阶段安装 CA 证书、fontconfig、Noto CJK 字体及 GCC/unwind 运行库。
 
 ```bash
 docker build -t qq-quote-generator .
@@ -173,6 +173,12 @@ docker run -d \
 ```
 
 首次构建需要访问 Docker Hub、GitHub 和 crates.io。
+
+Docker 构建默认使用 `https://goproxy.cn,direct` 下载 Go 模块。如需覆盖：
+
+```bash
+docker build --build-arg GOPROXY=https://proxy.golang.org,direct -t qq-quote-generator .
+```
 
 ## 配置
 

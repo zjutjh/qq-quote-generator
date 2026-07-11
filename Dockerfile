@@ -7,10 +7,11 @@ RUN sh scripts/build-resvg.sh
 
 FROM golang:1.25-alpine AS go-builder
 
-RUN apk add --no-cache gcc musl-dev
+ARG GOPROXY=https://goproxy.cn,direct
+RUN apk add --no-cache gcc musl-dev libunwind-dev
 WORKDIR /src
 COPY go.mod go.sum ./
-RUN go mod download
+RUN GOPROXY="$GOPROXY" go mod download
 COPY . .
 COPY --from=resvg-builder /src/internal/resvg/lib/linux-amd64/libresvg.a internal/resvg/lib/linux-amd64/libresvg.a
 COPY --from=resvg-builder /src/internal/resvg/lib/linux-amd64/native-static-libs.txt internal/resvg/lib/linux-amd64/native-static-libs.txt
@@ -21,7 +22,7 @@ RUN CGO_LDFLAGS="$(cat internal/resvg/lib/linux-amd64/native-static-libs.txt)" \
 
 FROM alpine:3.21
 
-RUN apk add --no-cache ca-certificates fontconfig font-noto-cjk
+RUN apk add --no-cache ca-certificates fontconfig font-noto-cjk libgcc libunwind
 COPY --from=go-builder /qq-quote-go /usr/local/bin/qq-quote-go
 
 EXPOSE 5000
