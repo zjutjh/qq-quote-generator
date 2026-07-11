@@ -4,26 +4,14 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	poolSize := envInt("POOL_SIZE", 4)
 	port := envStr("PORT", "5000")
 
-	// 初始化 browser pool
-	log.Printf("initializing browser pool (size=%d)...", poolSize)
-	pool, err := NewBrowserPool(poolSize)
-	if err != nil {
-		log.Fatalf("browser pool: %v", err)
-	}
-	defer pool.Close()
-	log.Println("browser pool ready")
-
-	// 初始化 renderer
-	renderer, err := NewRenderer(pool)
+	renderer, err := NewRenderer()
 	if err != nil {
 		log.Fatalf("renderer: %v", err)
 	}
@@ -76,15 +64,6 @@ func main() {
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func envInt(key string, fallback int) int {
-	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			return n
-		}
-	}
-	return fallback
 }
 
 func envStr(key, fallback string) string {
