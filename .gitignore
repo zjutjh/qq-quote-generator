@@ -1,3 +1,2 @@
-/native/resvg/lib/
-/testdata/visual/out/
-/testdata/visual/docker.png
+/internal/resvg/lib/
+/dist/

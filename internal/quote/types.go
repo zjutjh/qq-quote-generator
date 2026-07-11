@@ -1,4 +1,4 @@
-package main
+package quote
 
 // MessageSegment 对应消息中的单个内容片段（文本或图片）
 type MessageSegment struct {

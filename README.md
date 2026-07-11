@@ -1,171 +1,178 @@
 # QQ Quote Generator
 
-一个使用 Go 编写的 QQ 引用图生成服务。服务直接计算消息布局、生成 SVG，再通过 resvg 输出 PNG；生产运行时不需要 Chromium，也没有浏览器进程池。
+一个使用 Go、SVG 和 resvg 实现的 QQ 引用图生成服务。服务直接计算消息布局并生成 PNG，生产运行时不需要 Chromium。
 
-## 支持的功能
+## 功能
 
-- `/png/` 返回 PNG 图片；
+- `/png/` 返回 PNG；
 - `/base64/` 返回 PNG 的 Base64 文本；
-- 支持字符串消息和图文消息段；
-- 支持远程图片、data URI、自定义头像和 QQ 头像；
-- 支持普通图片、emoji、sticker 的不同尺寸规则；
+- 支持纯文本、图文混排、自定义头像和 QQ 头像；
+- 支持 HTTP、HTTPS 和 `data:image/*` 图片；
+- 支持普通图片、emoji、sticker 的尺寸规则；
 - 06:00–17:59 使用浅色主题，其余时间使用深色主题；
-- 单张远程头像或消息图片加载失败时继续生成引用图；
-- 字体按系统 family 解析，不在仓库内附带字体文件。
+- 单张远程图片加载失败时继续生成引用图；
+- 根据系统字体 family 自动选择苹方、微软雅黑或 Noto Sans CJK。
 
-## 渲染结构
+## 项目结构
 
-一次请求依次经过：
-
-1. 解析并兼容原有消息 JSON；
-2. 下载、校验并内嵌头像和消息图片；
-3. 使用系统字体计算文本宽度和换行；
-4. 计算卡片、消息行、头像、昵称、气泡和图片坐标；
-5. 生成不引用外部资源的 SVG；
-6. 通过 resvg 0.47.0 C API 渲染 RGBA，再编码为 PNG。
-
-## 支持的平台
-
-当前原生构建脚本和 CGO 链接参数支持：
-
-- Windows amd64；
-- Linux amd64；
-- Docker Linux amd64。
-
-resvg 静态库属于平台构建产物，生成在 `native/resvg/lib/<platform>/`，该目录不会提交到 Git。首次拉取代码后必须先构建原生库，才能执行 `go build`、`go run` 或视觉对比工具。
-
-## Windows 本地构建
-
-### 1. 安装依赖
-
-需要以下工具，并确保命令能直接从 PowerShell 调用：
-
-- Go 1.25 或更高版本；
-- Rust 1.87 或更高版本；
-- Cargo；
-- Git；
-- 支持 CGO 的 MinGW-w64 GCC。
-
-检查环境：
-
-```powershell
-go version
-rustc --version
-cargo --version
-git --version
-gcc --version
+```text
+.
+├── main.go                         # 程序入口和依赖组装
+├── internal/
+│   ├── server/server.go            # Gin 路由与 HTTP 响应
+│   ├── quote/                      # 消息、资源、字体、布局、SVG 和渲染流程
+│   └── resvg/                      # resvg C API、CGO 封装和平台静态库目录
+├── scripts/
+│   ├── build-resvg.ps1             # Windows amd64 原生库构建
+│   └── build-resvg.sh              # Linux/macOS 原生库构建
+├── .github/workflows/release.yml   # tag 自动构建与发布
+└── Dockerfile
 ```
 
-### 2. 准备系统字体
+`internal/resvg/lib/` 是本地生成目录，不提交到 Git。首次拉取项目后，必须先构建 resvg 静态库，再执行 Go 编译。
 
-服务按以下顺序选择第一个已经安装的字体：
+## 字体
+
+服务按以下顺序选择第一个已安装的字体：
 
 1. `PingFang SC`
 2. `Microsoft YaHei`
 3. `Noto Sans CJK SC`
 
-macOS 通常自带苹方，Windows 通常自带微软雅黑。三者都不存在时，服务会明确启动失败，不会换成不可控的字体。
+macOS 通常自带苹方，Windows 通常自带微软雅黑。Linux 和 Docker 建议安装 Noto CJK。三者均不存在时，程序会明确启动失败，不会静默换成未知字体。
 
-### 3. 编译 resvg
+## Windows amd64 构建
 
-```powershell
-powershell -ExecutionPolicy Bypass -File native/resvg/build.ps1
-```
+### 环境要求
 
-脚本会执行以下工作：
+- Go 1.25 或更高版本；
+- Rust 1.87 或更高版本；
+- Cargo 和 rustup；
+- Git；
+- MinGW-w64 GCC，并且 `gcc` 已加入 `PATH`。
 
-- 从 resvg 官方仓库拉取固定标签 `v0.47.0`；
-- 把源码缓存到 `%TEMP%\qq-quote-resvg-0.47.0`；
-- 执行 `cargo build --release -p resvg-capi`；
-- 生成 `native/resvg/lib/windows-amd64/libresvg.a`；
-- 复制与该版本匹配的 `resvg.h`。
-
-脚本不会自动选择其他 resvg 版本。编译失败时会直接停止。
-
-### 4. 编译或启动服务
+检查工具：
 
 ```powershell
-go build -o qq-quote-go.exe .
-./qq-quote-go.exe
+go version
+rustc --version
+cargo --version
+rustup --version
+git --version
+gcc --version
 ```
 
-开发时也可以直接运行：
+### 编译 resvg
 
 ```powershell
-go run .
+powershell -ExecutionPolicy Bypass -File scripts/build-resvg.ps1
 ```
 
-修改 resvg 版本、Rust 工具链或目标平台后，应重新执行 `build.ps1`。
+脚本会：
 
-## Linux 本地构建
+1. 固定拉取 resvg 官方标签 `v0.47.0`；
+2. 把源码缓存到 `%TEMP%\qq-quote-resvg-0.47.0`；
+3. 安装 Rust 目标 `x86_64-pc-windows-gnu`；
+4. 编译 `resvg-capi` 的 release 静态库；
+5. 写入 `internal/resvg/lib/windows-amd64/libresvg.a`；
+6. 同步官方 `resvg.h` 到 `internal/resvg/resvg.h`。
 
-### 1. 安装依赖
+### 编译程序
 
-以 Alpine 为例：
+```powershell
+$env:CGO_ENABLED = "1"
+$env:GOOS = "windows"
+$env:GOARCH = "amd64"
+$env:CC = "gcc"
+go build -trimpath -ldflags "-s -w" -o qq-quote-generator.exe .
+```
+
+启动：
+
+```powershell
+./qq-quote-generator.exe
+```
+
+## Linux amd64 构建
+
+### Alpine
 
 ```bash
 apk add --no-cache go rust cargo git gcc musl-dev fontconfig font-noto-cjk
+sh scripts/build-resvg.sh
+CGO_LDFLAGS="$(cat internal/resvg/lib/linux-amd64/native-static-libs.txt)" \
+  CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
+  go build -trimpath -ldflags="-s -w" -o qq-quote-generator .
 ```
 
-Debian/Ubuntu 可安装等价软件包：
+### Debian/Ubuntu
 
 ```bash
 sudo apt update
 sudo apt install -y golang-go rustc cargo git gcc libc6-dev fontconfig fonts-noto-cjk
+sh scripts/build-resvg.sh
+CGO_LDFLAGS="$(cat internal/resvg/lib/linux-amd64/native-static-libs.txt)" \
+  CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
+  go build -trimpath -ldflags="-s -w" -o qq-quote-generator .
 ```
 
-### 2. 编译 resvg
+如果启动时提示找不到字体，可用下面的命令确认字体 family：
 
 ```bash
-sh native/resvg/build.sh
+fc-list | grep -E "Noto Sans CJK|PingFang|Microsoft YaHei"
 ```
 
-脚本会固定拉取 `v0.47.0`，并生成：
+## macOS 构建
 
-```text
-native/resvg/lib/linux-amd64/libresvg.a
-```
+### 环境要求
 
-### 3. 编译服务
+- Go 1.25 或更高版本；
+- Rust 1.87 或更高版本；
+- Git；
+- Xcode Command Line Tools。
 
 ```bash
-CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o qq-quote-go .
-./qq-quote-go
+xcode-select --install
 ```
 
-如果启动时报“找不到可用字体”，请运行 `fc-list` 检查 `Noto Sans CJK SC` 是否已经安装。
+### Intel macOS
+
+```bash
+sh scripts/build-resvg.sh
+CGO_LDFLAGS="$(cat internal/resvg/lib/darwin-amd64/native-static-libs.txt)" \
+  CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 \
+  go build -trimpath -ldflags="-s -w" -o qq-quote-generator .
+```
+
+### Apple Silicon
+
+```bash
+sh scripts/build-resvg.sh
+CGO_LDFLAGS="$(cat internal/resvg/lib/darwin-arm64/native-static-libs.txt)" \
+  CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 \
+  go build -trimpath -ldflags="-s -w" -o qq-quote-generator .
+```
+
+脚本根据 `uname -m` 自动把静态库写入 `darwin-amd64` 或 `darwin-arm64` 目录，并记录 Rust 给出的原生链接参数。
 
 ## Docker 构建
 
 Dockerfile 使用三个阶段：
 
-1. Rust 阶段从官方 `v0.47.0` 编译 resvg C API；
-2. Go 阶段启用 CGO，链接 resvg 静态库；
-3. 运行阶段只保留服务、CA 证书、fontconfig 和 Noto CJK 字体。
-
-构建镜像：
+1. Rust 阶段编译 resvg 0.47.0；
+2. Go 阶段启用 CGO 并链接静态库；
+3. Alpine 运行阶段安装 CA 证书、fontconfig 和 Noto CJK 字体。
 
 ```bash
-docker build -t qq-quote-go:resvg .
-```
-
-首次构建需要访问 Docker Hub、GitHub 和 crates.io。若在拉取基础镜像时出现 `failed to fetch anonymous token`，这是 Docker daemon 到 Docker Hub 的网络问题，并非 Go 或 resvg 编译错误。
-
-启动容器：
-
-```bash
+docker build -t qq-quote-generator .
 docker run -d \
-  --name qq-quote-go \
+  --name qq-quote-generator \
   --restart unless-stopped \
   -p 8080:5000 \
-  qq-quote-go:resvg
+  qq-quote-generator
 ```
 
-查看日志：
-
-```bash
-docker logs -f qq-quote-go
-```
+首次构建需要访问 Docker Hub、GitHub 和 crates.io。
 
 ## 配置
 
@@ -177,8 +184,6 @@ docker logs -f qq-quote-go
 
 ### POST `/png/`
 
-返回 `image/png`：
-
 ```bash
 curl -X POST http://localhost:8080/png/ \
   -H "Content-Type: application/json" \
@@ -188,27 +193,9 @@ curl -X POST http://localhost:8080/png/ \
 
 ### POST `/base64/`
 
-请求体与 `/png/` 相同，响应为纯 Base64 文本：
+请求体与 `/png/` 相同，响应为纯 Base64 文本。
 
-```bash
-curl -X POST http://localhost:8080/base64/ \
-  -H "Content-Type: application/json" \
-  -d '[{"user_id":12345,"user_nickname":"张三","message":"Hello!"}]'
-```
-
-### 纯文本消息
-
-```json
-[
-  {
-    "user_id": 12345,
-    "user_nickname": "张三",
-    "message": "纯文本消息"
-  }
-]
-```
-
-### 图文混排
+### 图文消息
 
 ```json
 [
@@ -238,27 +225,22 @@ curl -X POST http://localhost:8080/base64/ \
 ]
 ```
 
-`avatar` 为空且 `user_id > 0` 时，服务会请求 QQ 头像地址：
+## 自动发布 Release
 
-```text
-https://q1.qlogo.cn/g?b=qq&nk=<user_id>&s=100
+推送严格符合 `vX.Y.Z` 的 tag 时，GitHub Actions 会自动构建：
+
+- Windows amd64；
+- Linux amd64；
+- macOS amd64；
+- macOS arm64。
+
+每个平台都会独立编译 resvg 0.47.0 和 Go 程序。四个平台全部成功后，工作流才会创建 GitHub Release，并上传 ZIP 或 `tar.gz`。压缩包包含可执行文件和 README。
+
+发布示例：
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
-## 视觉回归工具
-
-重构前的完整 Chromium 代码保存在 Git 提交 `49853a6`。对比工具会临时还原该提交，使用相同 JSON、相同本地图片和相同系统字体 family，分别请求旧版和新版服务。
-
-```powershell
-go run ./cmd/visual-regression \
-  -fixture testdata/visual/messages.json \
-  -out testdata/visual/out/current
-```
-
-输出文件：
-
-- `chromium.png`：旧版输出；
-- `resvg.png`：新版输出；
-- `diff.png`：逐像素差异热图；
-- `report.json`：尺寸和原始差异数据。
-
-工具专用的旧版 Chromium 使用单 Page，避免本地首次预热多个 Page 时阻塞。Chromium 仅用于视觉回归，不会进入生产二进制或生产 Docker 镜像。
+`v1.0.0-beta`、`1.0.0` 等 tag 不会通过版本校验。

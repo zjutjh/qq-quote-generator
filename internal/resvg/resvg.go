@@ -1,8 +1,10 @@
-package main
+package resvg
 
 /*
-#cgo windows LDFLAGS: -L${SRCDIR}/native/resvg/lib/windows-amd64 -lresvg -lws2_32 -luserenv -lbcrypt -lntdll
-#cgo linux LDFLAGS: -L${SRCDIR}/native/resvg/lib/linux-amd64 -lresvg -ldl -lm -lpthread
+#cgo windows,amd64 LDFLAGS: -L${SRCDIR}/lib/windows-amd64 -lresvg -lkernel32 -lntdll -luserenv -lws2_32 -ldbghelp
+#cgo linux,amd64 LDFLAGS: -L${SRCDIR}/lib/linux-amd64 -lresvg -lgcc_s -lutil -lrt -lpthread -lm -ldl
+#cgo darwin,amd64 LDFLAGS: -L${SRCDIR}/lib/darwin-amd64 -lresvg -framework CoreFoundation -framework Security -liconv
+#cgo darwin,arm64 LDFLAGS: -L${SRCDIR}/lib/darwin-arm64 -lresvg -framework CoreFoundation -framework Security -liconv
 #include "resvg.h"
 */
 import "C"
@@ -17,21 +19,21 @@ import (
 	"unsafe"
 )
 
-type ResvgRasterizer struct {
+type Rasterizer struct {
 	mu      sync.RWMutex
 	options *C.resvg_options
 }
 
-func NewResvgRasterizer() (*ResvgRasterizer, error) {
+func NewRasterizer() (*Rasterizer, error) {
 	options := C.resvg_options_create()
 	if options == nil {
 		return nil, fmt.Errorf("create resvg options")
 	}
 	C.resvg_options_load_system_fonts(options)
-	return &ResvgRasterizer{options: options}, nil
+	return &Rasterizer{options: options}, nil
 }
 
-func (r *ResvgRasterizer) Close() {
+func (r *Rasterizer) Close() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.options != nil {
@@ -40,7 +42,7 @@ func (r *ResvgRasterizer) Close() {
 	}
 }
 
-func (r *ResvgRasterizer) Render(svg []byte) ([]byte, error) {
+func (r *Rasterizer) Render(svg []byte) ([]byte, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if r.options == nil {

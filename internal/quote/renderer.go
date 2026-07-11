@@ -1,4 +1,4 @@
-package main
+package quote
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/Penryn/qq-quote-generator/internal/resvg"
 )
 
 const defaultRenderTimeout = 8 * time.Second
@@ -15,7 +17,7 @@ type Renderer struct {
 	loader     *ResourceLoader
 	layout     *LayoutEngine
 	svg        SVGBuilder
-	rasterizer *ResvgRasterizer
+	rasterizer *resvg.Rasterizer
 	now        func() time.Time
 }
 
@@ -24,7 +26,7 @@ func NewRenderer() (*Renderer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("font manager: %w", err)
 	}
-	rasterizer, err := NewResvgRasterizer()
+	rasterizer, err := resvg.NewRasterizer()
 	if err != nil {
 		return nil, fmt.Errorf("resvg: %w", err)
 	}
