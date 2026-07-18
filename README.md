@@ -1,15 +1,15 @@
 # QQ Quote Generator
 
-一个使用 Go、SVG 和 resvg 实现的 QQ 引用图生成服务。服务直接计算消息布局并生成 PNG，生产运行时不需要 Chromium。
+一个使用 Go、SVG 和 resvg 实现的 QQ 引用图生成服务。服务直接计算消息布局并生成 PNG 或动态 GIF，生产运行时不需要 Chromium。
 
 ## 功能
 
-- `/png/` 返回 PNG；
-- `/base64/` 返回 PNG 的 Base64 文本；
-- 支持纯文本、图文混排、自定义头像和 QQ 头像；
+- `/png/` 和 `/gif/` 分别返回 PNG 与 GIF；
+- `/png/base64/` 和 `/gif/base64/` 返回对应图片的 Base64 文本；
+- 支持纯文本、图文混排、QQ 表情、自定义头像和 QQ 头像；
 - 支持 HTTP、HTTPS 和 `data:image/*` 图片；
-- 支持普通图片、emoji、sticker 的尺寸规则；
-- 06:00–17:59 使用浅色主题，其余时间使用深色主题；
+- 支持普通图片、emoji、sticker 的尺寸规则以及 GIF/APNG 动画；
+- 固定使用浅色主题；
 - 单张远程图片加载失败时继续生成引用图；
 - 根据系统字体 family 自动选择苹方、微软雅黑或 Noto Sans CJK。
 
@@ -197,9 +197,13 @@ curl -X POST http://localhost:8080/png/ \
   -o out.png
 ```
 
-### POST `/base64/`
+### POST `/png/base64/`
 
 请求体与 `/png/` 相同，响应为纯 Base64 文本。
+
+### POST `/gif/` 与 `/gif/base64/`
+
+请求体与 `/png/` 相同。`/gif/` 返回 `image/gif`，`/gif/base64/` 返回同一格式的纯 Base64 文本。消息中的 GIF、APNG 和 QQ APNG 表情会合成为整张动态引用图；静态请求会生成单帧 GIF。
 
 ### 图文消息
 
@@ -210,6 +214,7 @@ curl -X POST http://localhost:8080/png/ \
     "user_nickname": "张三",
     "message": [
       {"type": "text", "text": "看这张图"},
+      {"type": "face", "id": "178"},
       {"type": "image", "url": "https://example.com/image.jpg"},
       {"type": "image", "kind": "emoji", "url": "data:image/png;base64,..."},
       {"type": "image", "kind": "sticker", "url": "data:image/png;base64,..."}
@@ -217,6 +222,8 @@ curl -X POST http://localhost:8080/png/ \
   }
 ]
 ```
+
+QQ 表情 `id` 接受十进制字符串或整数。emoji 和 QQ 表情无论单独发送还是与文字混排均为 24px；PNG 路由加载 PNG，GIF 路由优先加载 APNG。sticker 最长边为 128px。普通图片和 sticker 使用 6px 圆角，emoji 和 QQ 表情不裁圆角。动态输出最长 5 秒、最多 100 帧并无限循环。
 
 ### 自定义头像
 

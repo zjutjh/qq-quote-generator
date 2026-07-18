@@ -1,11 +1,12 @@
 package quote
 
-// MessageSegment 对应消息中的单个内容片段（文本或图片）
+// MessageSegment 对应消息中的单个内容片段。
 type MessageSegment struct {
-	Type string `json:"type"` // "text" | "image"
+	Type string `json:"type"` // "text" | "image" | "face"
 	Kind string `json:"kind,omitempty"`
 	Text string `json:"text,omitempty"`
 	URL  string `json:"url,omitempty"` // 图片 URL 或 base64 data URI
+	ID   any    `json:"id,omitempty"`  // QQ 表情 ID，接受字符串或整数
 }
 
 // Message 对应一条聊天消息

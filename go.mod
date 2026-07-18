@@ -3,8 +3,10 @@ module github.com/Penryn/qq-quote-generator
 go 1.25.8
 
 require (
+	github.com/dgavrilov/imgpalette v0.2.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-text/typesetting v0.3.4
+	github.com/kettek/apng v0.0.0-20250827064933-2bb5f5fcf253
 	golang.org/x/image v0.32.0
 )
 

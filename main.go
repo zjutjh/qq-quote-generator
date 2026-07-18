@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"log"
 	"os"
 
@@ -15,16 +16,9 @@ func main() {
 	}
 	defer renderer.Close()
 
-	port := env("PORT", "5000")
+	port := cmp.Or(os.Getenv("PORT"), "5000")
 	log.Printf("listening on :%s", port)
 	if err := server.New(renderer).Run(":" + port); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func env(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return fallback
 }

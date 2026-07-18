@@ -3,8 +3,9 @@ package quote
 import (
 	"encoding/json"
 	"fmt"
+	"math"
+	"strconv"
 	"strings"
-	"time"
 )
 
 type Theme struct {
@@ -15,18 +16,9 @@ type Theme struct {
 	TextColor string
 }
 
-var (
-	lightTheme = Theme{"#f7f8fb", "#d9dee8", "#667085", "#ffffff", "#242937"}
-	darkTheme  = Theme{"#1e1e2e", "#333333", "#7c7f93", "#313244", "#cdd6f4"}
-)
-
-func themeForTime(t time.Time) Theme { return themeForHour(t.Hour()) }
-
-func themeForHour(hour int) Theme {
-	if hour >= 6 && hour < 18 {
-		return lightTheme
-	}
-	return darkTheme
+var lightTheme = Theme{
+	CardBG: "#f7f8fb", AvatarBG: "#d9dee8", NameColor: "#667085",
+	BubbleBG: "#ffffff", TextColor: "#242937",
 }
 
 func safeImageURL(raw string) string {
@@ -46,6 +38,39 @@ func resolveAvatar(msg Message) string {
 		return fmt.Sprintf("https://q1.qlogo.cn/g?b=qq&nk=%d&s=100", msg.UserID)
 	}
 	return ""
+}
+
+func faceID(value any) string {
+	var id string
+	switch value := value.(type) {
+	case string:
+		id = strings.TrimSpace(value)
+	case float64:
+		if value < 0 || value > math.MaxInt64 || value != math.Trunc(value) {
+			return ""
+		}
+		id = strconv.FormatInt(int64(value), 10)
+	case int:
+		if value < 0 {
+			return ""
+		}
+		id = strconv.Itoa(value)
+	case int64:
+		if value < 0 {
+			return ""
+		}
+		id = strconv.FormatInt(value, 10)
+	default:
+		return ""
+	}
+	if len(id) == 0 || len(id) > 10 {
+		return ""
+	}
+	parsed, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		return ""
+	}
+	return strconv.FormatUint(parsed, 10)
 }
 
 func parseMessageField(raw interface{}) ([]MessageSegment, error) {

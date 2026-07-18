@@ -6,9 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"image"
-	_ "image/gif"
 	_ "image/jpeg"
-	_ "image/png"
 	"io"
 	"mime"
 	"net/http"
@@ -17,6 +15,7 @@ import (
 
 type LoadedImage struct {
 	DataURI string
+	Data    []byte
 	Width   int
 	Height  int
 	Err     error
@@ -45,6 +44,7 @@ func (l *ResourceLoader) Load(ctx context.Context, source string) LoadedImage {
 	}
 	return LoadedImage{
 		DataURI: "data:" + mediaType + ";base64," + base64.StdEncoding.EncodeToString(data),
+		Data:    data,
 		Width:   config.Width,
 		Height:  config.Height,
 	}

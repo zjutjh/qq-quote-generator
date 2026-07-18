@@ -40,9 +40,9 @@ func writeRow(out *bytes.Buffer, index int, row RowLayout, theme Theme, fontFami
 			}
 		} else if segment.Type == "image" && strings.HasPrefix(segment.DataURI, "data:image/") && segment.Rect.W > 0 && segment.Rect.H > 0 {
 			clip := ""
-			if segment.Kind != "emoji" && segment.Kind != "sticker" {
+			if imageHasRoundedCorners(segment.Kind) {
 				id := fmt.Sprintf("message-image-%d-%d", index, segmentIndex)
-				fmt.Fprintf(out, `<defs><clipPath id="%s" clipPathUnits="userSpaceOnUse"><rect x="%s" y="%s" width="%s" height="%s" rx="6"/></clipPath></defs>`, id, px(segment.Rect.X), px(segment.Rect.Y), px(segment.Rect.W), px(segment.Rect.H))
+				fmt.Fprintf(out, `<defs><clipPath id="%s" clipPathUnits="userSpaceOnUse"><rect x="%s" y="%s" width="%s" height="%s" rx="%s"/></clipPath></defs>`, id, px(segment.Rect.X), px(segment.Rect.Y), px(segment.Rect.W), px(segment.Rect.H), px(imageRadius))
 				clip = ` clip-path="url(#` + id + `)"`
 			}
 			fmt.Fprintf(out, `<image x="%s" y="%s" width="%s" height="%s" href="%s" preserveAspectRatio="xMidYMid meet"%s/>`, px(segment.Rect.X), px(segment.Rect.Y), px(segment.Rect.W), px(segment.Rect.H), segment.DataURI, clip)
