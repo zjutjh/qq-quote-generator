@@ -10,7 +10,7 @@ const (
 	cardMaxWidth    = 600.0
 	cardPadX        = 12.0
 	cardPadY        = 16.0
-	avatarSize      = 42.0
+	avatarSize      = 40.0
 	rowGap          = 10.0
 	rowMargin       = 14.0
 	nicknameSize    = 12.0

@@ -16,7 +16,8 @@ func (SVGBuilder) Build(card CardLayout) ([]byte, error) {
 	fmt.Fprintf(&out, `<rect width="%s" height="%s" rx="12" fill="%s"/>`, px(card.Width), px(card.Height), card.Theme.CardBG)
 	out.WriteString(`<defs>`)
 	for index, row := range card.Rows {
-		fmt.Fprintf(&out, `<clipPath id="avatar-%d" clipPathUnits="userSpaceOnUse"><circle cx="%s" cy="%s" r="21"/></clipPath>`, index, px(row.Avatar.X+21), px(row.Avatar.Y+21))
+		radius := row.Avatar.W / 2
+		fmt.Fprintf(&out, `<clipPath id="avatar-%d" clipPathUnits="userSpaceOnUse"><circle cx="%s" cy="%s" r="%s"/></clipPath>`, index, px(row.Avatar.X+radius), px(row.Avatar.Y+radius), px(radius))
 	}
 	out.WriteString(`</defs>`)
 	for index, row := range card.Rows {
@@ -27,9 +28,10 @@ func (SVGBuilder) Build(card CardLayout) ([]byte, error) {
 }
 
 func writeRow(out *bytes.Buffer, index int, row RowLayout, theme Theme, fontFamily string) {
-	fmt.Fprintf(out, `<circle cx="%s" cy="%s" r="21" fill="%s"/>`, px(row.Avatar.X+21), px(row.Avatar.Y+21), theme.AvatarBG)
+	radius := row.Avatar.W / 2
+	fmt.Fprintf(out, `<circle cx="%s" cy="%s" r="%s" fill="%s"/>`, px(row.Avatar.X+radius), px(row.Avatar.Y+radius), px(radius), theme.AvatarBG)
 	if strings.HasPrefix(row.AvatarDataURI, "data:image/") {
-		fmt.Fprintf(out, `<image x="%s" y="%s" width="42" height="42" href="%s" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatar-%d)"/>`, px(row.Avatar.X), px(row.Avatar.Y), row.AvatarDataURI, index)
+		fmt.Fprintf(out, `<image x="%s" y="%s" width="%s" height="%s" href="%s" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatar-%d)"/>`, px(row.Avatar.X), px(row.Avatar.Y), px(row.Avatar.W), px(row.Avatar.H), row.AvatarDataURI, index)
 	}
 	writeText(out, row.Nickname.Rect.X, row.Nickname.Rect.Y+row.Nickname.Lines[0].Baseline, row.Nickname.FontSize, theme.NameColor, fontFamily, row.Nickname.Lines[0].Text)
 	writeBubble(out, row.Bubble.Rect, theme.BubbleBG)
