@@ -8,7 +8,7 @@ QQ Quote Generator 是一个将 QQ 聊天内容渲染为引用图片的 HTTP 服
 
 项目的长期目标是：
 
-- 保持既有 HTTP 接口和请求格式兼容；
+- 保持当前 HTTP 接口和请求格式稳定；
 - 在不牺牲视觉一致性的前提下，降低渲染延迟和内存占用；
 - 支持纯文本、图文混排、QQ 头像、自定义头像、QQ 表情、emoji、sticker 和 GIF/APNG 动画；
 - 在 Windows amd64、Linux amd64、macOS amd64 和 macOS arm64 上可构建、可发布；
@@ -71,7 +71,7 @@ QQ Quote Generator 是一个将 QQ 聊天内容渲染为引用图片的 HTTP 服
 
 修改其中一个阶段时，应保持相邻阶段的输入输出边界稳定。布局代码不负责网络访问，SVG 代码不重新计算业务布局，CGO 封装不处理 HTTP 请求。
 
-## 对外接口兼容性
+## 对外接口契约
 
 以下行为是公开契约，除非需求明确要求破坏性变更，否则必须保留：
 
@@ -80,8 +80,7 @@ QQ Quote Generator 是一个将 QQ 聊天内容渲染为引用图片的 HTTP 服
 - `POST /gif/` 和 `POST /gif/base64/` 分别返回 GIF 与 GIF 的纯 Base64 文本；
 - JSON 绑定失败返回 HTTP 400 和包含 `error` 的 JSON；
 - 渲染失败返回 HTTP 500 和包含 `error` 的 JSON；
-- `message` 接受纯字符串，也接受由 `text`/`image`/`face` 片段组成的数组；`face` 使用扁平十进制 `id`；
-- 非字符串、非数组的 `message` 保持当前字符串化兼容行为；
+- `message` 必须是由 `text`/`image`/`face` 片段组成的数组；`face` 使用扁平十进制字符串 `id`；
 - `avatar` 接受 HTTP、HTTPS 或 `data:image/*`；未提供头像且 `user_id > 0` 时使用 QQ 头像接口；
 - 消息图片接受 HTTP、HTTPS 或 Base64 data URI；普通图片、emoji、sticker 保持各自的尺寸规则；GIF/APNG 在 GIF 路由中保留动画；
 - 单张图片加载失败时记录日志并继续渲染，不使整个请求失败；

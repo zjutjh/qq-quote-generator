@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Penryn/qq-quote-generator/internal/quote"
 	"github.com/gin-gonic/gin"
+	"github.com/zjutjh/qq-quote-generator/internal/quote"
 )
 
 func New(renderer *quote.Renderer) *gin.Engine {

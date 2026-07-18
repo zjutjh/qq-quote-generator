@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Penryn/qq-quote-generator/internal/resvg"
+	"github.com/zjutjh/qq-quote-generator/internal/resvg"
 )
 
 const (
@@ -77,11 +77,7 @@ func (r *Renderer) prepareMessages(ctx context.Context, messages []Message, anim
 		prepared := PreparedMessage{Nickname: message.UserNickname}
 		prepared.Avatar = r.loadImage(ctx, safeImageURL(resolveAvatar(message)))
 		prepared.Avatar.Data = nil
-		segments, err := parseMessageField(message.Message)
-		if err != nil {
-			return nil, fmt.Errorf("parse message: %w", err)
-		}
-		for _, segment := range segments {
+		for _, segment := range message.Message {
 			item := PreparedSegment{Type: segment.Type, Kind: segment.Kind, Text: segment.Text}
 			if segment.Type == "image" {
 				item.Image = r.loadImage(ctx, safeImageURL(segment.URL))

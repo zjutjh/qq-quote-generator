@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/Penryn/qq-quote-generator/internal/quote"
-	"github.com/Penryn/qq-quote-generator/internal/server"
+	"github.com/zjutjh/qq-quote-generator/internal/quote"
+	"github.com/zjutjh/qq-quote-generator/internal/server"
 )
 
 func main() {

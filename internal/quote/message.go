@@ -1,9 +1,7 @@
 package quote
 
 import (
-	"encoding/json"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -40,29 +38,8 @@ func resolveAvatar(msg Message) string {
 	return ""
 }
 
-func faceID(value any) string {
-	var id string
-	switch value := value.(type) {
-	case string:
-		id = strings.TrimSpace(value)
-	case float64:
-		if value < 0 || value > math.MaxInt64 || value != math.Trunc(value) {
-			return ""
-		}
-		id = strconv.FormatInt(int64(value), 10)
-	case int:
-		if value < 0 {
-			return ""
-		}
-		id = strconv.Itoa(value)
-	case int64:
-		if value < 0 {
-			return ""
-		}
-		id = strconv.FormatInt(value, 10)
-	default:
-		return ""
-	}
+func faceID(value string) string {
+	id := strings.TrimSpace(value)
 	if len(id) == 0 || len(id) > 10 {
 		return ""
 	}
@@ -71,26 +48,4 @@ func faceID(value any) string {
 		return ""
 	}
 	return strconv.FormatUint(parsed, 10)
-}
-
-func parseMessageField(raw interface{}) ([]MessageSegment, error) {
-	if raw == nil {
-		return nil, nil
-	}
-	switch v := raw.(type) {
-	case string:
-		return []MessageSegment{{Type: "text", Text: v}}, nil
-	case []interface{}:
-		data, err := json.Marshal(v)
-		if err != nil {
-			return nil, err
-		}
-		var segments []MessageSegment
-		if err := json.Unmarshal(data, &segments); err != nil {
-			return nil, err
-		}
-		return segments, nil
-	default:
-		return []MessageSegment{{Type: "text", Text: fmt.Sprintf("%v", v)}}, nil
-	}
 }

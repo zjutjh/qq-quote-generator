@@ -1,4 +1,4 @@
-module github.com/Penryn/qq-quote-generator
+module github.com/zjutjh/qq-quote-generator
 
 go 1.25.8
 
