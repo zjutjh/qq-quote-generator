@@ -22,7 +22,16 @@ RUN CGO_LDFLAGS="$(cat internal/resvg/lib/linux-amd64/native-static-libs.txt)" \
 
 FROM alpine:3.21
 
-RUN apk add --no-cache ca-certificates fontconfig font-noto-cjk libgcc libunwind
+ARG APPLE_EMOJI_RELEASE=macos-26-20260613-f1fc560b
+ARG APPLE_EMOJI_SHA256=b8c8ed97f642b89ba4a36a3e096619f0805d06cc25ae1116e6953b98142ae20c
+RUN apk add --no-cache ca-certificates fontconfig font-noto-cjk libgcc libunwind \
+    && apk add --no-cache --virtual .font-download curl \
+    && curl -fL --retry 3 --retry-all-errors --connect-timeout 30 \
+        -o /usr/share/fonts/AppleColorEmoji.ttf \
+        "https://github.com/samuelngs/apple-emoji-ttf/releases/download/${APPLE_EMOJI_RELEASE}/AppleColorEmoji-Linux.ttf" \
+    && echo "${APPLE_EMOJI_SHA256}  /usr/share/fonts/AppleColorEmoji.ttf" | sha256sum -c - \
+    && apk del .font-download \
+    && fc-cache -f
 COPY --from=go-builder /qq-quote-go /usr/local/bin/qq-quote-go
 
 EXPOSE 5000

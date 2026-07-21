@@ -20,7 +20,6 @@ const (
 type Renderer struct {
 	loader     *ResourceLoader
 	layout     *LayoutEngine
-	svg        SVGBuilder
 	rasterizer *resvg.Rasterizer
 }
 
@@ -35,7 +34,7 @@ func NewRenderer() (*Renderer, error) {
 	}
 	return &Renderer{
 		loader: NewResourceLoader(&http.Client{Timeout: 5 * time.Second}, 16<<20),
-		layout: NewLayoutEngine(fonts), svg: SVGBuilder{}, rasterizer: rasterizer,
+		layout: NewLayoutEngine(fonts), rasterizer: rasterizer,
 	}, nil
 }
 
@@ -49,10 +48,7 @@ func (r *Renderer) Render(ctx context.Context, messages []Message) ([]byte, erro
 		return nil, err
 	}
 	card := r.layout.Layout(prepared)
-	svg, err := r.svg.Build(card)
-	if err != nil {
-		return nil, fmt.Errorf("build SVG: %w", err)
-	}
+	svg := buildSVG(card)
 	png, err := r.rasterizer.Render(svg, outputScale)
 	if err != nil {
 		return nil, fmt.Errorf("render SVG: %w", err)
@@ -75,12 +71,15 @@ func (r *Renderer) prepareMessages(ctx context.Context, messages []Message, anim
 	result := make([]PreparedMessage, 0, len(messages))
 	for _, message := range messages {
 		prepared := PreparedMessage{Nickname: message.UserNickname}
-		prepared.Avatar = r.loadImage(ctx, safeImageURL(resolveAvatar(message)))
+		prepared.Avatar = r.loadImage(ctx, resolveAvatar(message))
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		prepared.Avatar.Data = nil
 		for _, segment := range message.Message {
 			item := PreparedSegment{Type: segment.Type, Kind: segment.Kind, Text: segment.Text}
 			if segment.Type == "image" {
-				item.Image = r.loadImage(ctx, safeImageURL(segment.URL))
+				item.Image = r.loadImage(ctx, segment.URL)
 			} else if segment.Type == "face" {
 				id := faceID(segment.ID)
 				if id == "" {
@@ -103,6 +102,9 @@ func (r *Renderer) prepareMessages(ctx context.Context, messages []Message, anim
 				item.Image.Data = nil
 			}
 			prepared.Segments = append(prepared.Segments, item)
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
 		}
 		result = append(result, prepared)
 	}

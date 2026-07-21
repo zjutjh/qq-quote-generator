@@ -53,10 +53,7 @@ func (r *Renderer) renderGIF(ctx context.Context, card CardLayout) ([]byte, erro
 	if err != nil {
 		return nil, err
 	}
-	svg, err := r.svg.Build(card)
-	if err != nil {
-		return nil, fmt.Errorf("build SVG: %w", err)
-	}
+	svg := buildSVG(card)
 	basePNG, err := r.rasterizer.Render(svg, outputScale)
 	if err != nil {
 		return nil, fmt.Errorf("render SVG: %w", err)
@@ -73,7 +70,7 @@ func (r *Renderer) renderGIF(ctx context.Context, card CardLayout) ([]byte, erro
 		maxFrames = min(maxFrames, max(1, int(maxOutputPixelFrames/area)))
 	}
 	moments := buildTimeline(placements, maxFrames)
-	gifPalette := buildGIFPalette(base, placements, card.Theme)
+	gifPalette := buildGIFPalette(base, placements)
 	output := gif.GIF{
 		Image:     make([]*image.Paletted, 0, len(moments)),
 		Delay:     make([]int, 0, len(moments)),
@@ -317,7 +314,7 @@ func frameAt(delays []int, elapsed int) int {
 	return len(delays) - 1
 }
 
-func buildGIFPalette(base *image.NRGBA, placements []*gifPlacement, theme Theme) color.Palette {
+func buildGIFPalette(base *image.NRGBA, placements []*gifPlacement) color.Palette {
 	sample := image.NewNRGBA(image.Rect(0, 0, 1024, 1024))
 	baseTarget := containRect(base.Bounds(), image.Rect(0, 0, 512, 1024))
 	draw.CatmullRom.Scale(sample, baseTarget, base, base.Bounds(), stdDraw.Over, nil)
@@ -338,7 +335,7 @@ func buildGIFPalette(base *image.NRGBA, placements []*gifPlacement, theme Theme)
 		draw.CatmullRom.Scale(sample, image.Rect(x, y, x+64, y+64), frame, frame.Bounds(), stdDraw.Over, nil)
 	}
 	result := color.Palette{color.NRGBA{A: 0}}
-	for _, value := range []string{theme.CardBG, theme.AvatarBG, theme.NameColor, theme.BubbleBG, theme.TextColor} {
+	for _, value := range []string{cardBackground, avatarBackground, nicknameColor, bubbleBackground, messageColor} {
 		result = appendUniqueColor(result, hexColor(value))
 	}
 	extracted, err := imgpalette.Extract(sample, imgpalette.Count(256-len(result)), imgpalette.Resize(1024), imgpalette.Space(imgpalette.SpaceOKLab))

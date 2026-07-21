@@ -31,6 +31,7 @@ func NewResourceLoader(client *http.Client, maxBytes int64) *ResourceLoader {
 }
 
 func (l *ResourceLoader) Load(ctx context.Context, source string) LoadedImage {
+	source = strings.TrimSpace(source)
 	if source == "" {
 		return LoadedImage{}
 	}

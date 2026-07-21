@@ -23,15 +23,14 @@ fi
 tag=$(git -C "$source_dir" describe --tags --exact-match)
 [ "$tag" = "v$version" ] || { echo "resvg cache is not v$version: $tag" >&2; exit 1; }
 
-cargo build --release -p resvg-capi --manifest-path "$source_dir/Cargo.toml"
+native_libs=$(cargo rustc --release -p resvg-capi --manifest-path "$source_dir/Cargo.toml" -- --print native-static-libs 2>&1 | sed -n 's/.*native-static-libs: //p' | tail -n 1)
+[ -n "$native_libs" ] || { echo "failed to determine Rust native link libraries" >&2; exit 1; }
 
 output="$project_root/internal/resvg/lib/$platform"
 mkdir -p "$output"
 cp "$source_dir/target/release/libresvg.a" "$output/libresvg.a"
 cp "$source_dir/crates/c-api/resvg.h" "$project_root/internal/resvg/resvg.h"
 
-native_libs=$(cargo rustc --release -p resvg-capi --manifest-path "$source_dir/Cargo.toml" -- --print native-static-libs 2>&1 | sed -n 's/.*native-static-libs: //p' | tail -n 1)
-[ -n "$native_libs" ] || { echo "failed to determine Rust native link libraries" >&2; exit 1; }
 printf '%s\n' "$native_libs" > "$output/native-static-libs.txt"
 
 echo "resvg $version built at $output"

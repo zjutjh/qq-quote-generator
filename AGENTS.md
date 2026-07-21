@@ -23,6 +23,7 @@ QQ Quote Generator 是一个将 QQ 聊天内容渲染为引用图片的 HTTP 服
 - 字体测量使用 `github.com/go-text/typesetting`；
 - resvg 和 Go 字体测量都从操作系统字体集合中选择字体，不把字体文件嵌入程序，也不通过项目内字体文件加载；
 - 字体 family 的优先级为 `PingFang SC`、`Microsoft YaHei`、`Noto Sans CJK SC`。找不到任何候选字体时应在启动阶段明确失败。
+- Unicode emoji 字体的优先级为 `Apple Color Emoji`、`Segoe UI Emoji`；Go 度量和 SVG 字形必须使用同一个 emoji family，找不到候选字体时应在启动阶段明确失败。Docker 使用 `samuelngs/apple-emoji-ttf` 当前最新 Release 的 Linux 字体，并固定 Release 标签和 SHA-256。
 
 不要重新引入 Chromium、Playwright、Puppeteer、chromedp 或其他浏览器运行时，也不要恢复 renderer pool 或 `pool_size` 配置。
 
@@ -65,7 +66,7 @@ QQ Quote Generator 是一个将 QQ 聊天内容渲染为引用图片的 HTTP 服
 3. `ResourceLoader` 加载头像和消息图片，读取尺寸并转换为 data URI；
 4. `FontManager` 使用选中的系统字体测量文本；
 5. `LayoutEngine` 计算卡片、消息行、气泡、文本和图片的逻辑尺寸；
-6. `SVGBuilder` 生成完整 SVG；
+6. `svg.go` 将布局序列化为完整 SVG；
 7. `internal/resvg` 使用 resvg 栅格化，并编码为 PNG；
 8. PNG 路由直接返回栅格化结果；GIF 路由在静态底图上合成动画帧并编码；Base64 路由返回对应格式的 Base64 文本。
 
@@ -101,6 +102,7 @@ QQ Quote Generator 是一个将 QQ 聊天内容渲染为引用图片的 HTTP 服
 - 普通消息图片最长边不超过 200，emoji 和 QQ 表情无论单独发送还是与文字混排均为 24 × 24，sticker 最长边不超过 128；所有 QQ 表情使用相同加载规则，PNG 路由加载 PNG，GIF 路由优先加载 APNG；
 - 普通消息图片和 sticker 圆角为 6，emoji 与 QQ 表情不裁圆角，卡片圆角为 12；
 - 文本宽度测量和 resvg 实际使用的字体 family 必须一致；
+- Unicode emoji 字形使用正文字号的 1.25 倍，字体度量和 SVG 输出必须使用相同字号；
 - 所有用户文本必须经过 XML 转义后再写入 SVG；
 - 图片继续使用等比例缩放，不得拉伸；
 - 允许不同栅格化器之间存在极小的文字抗锯齿差异，但不接受明显的尺寸、位置、换行或颜色偏差。
@@ -139,6 +141,7 @@ sh scripts/build-resvg.sh
 - `internal/resvg/resvg.h` 是否与 resvg 版本匹配；
 - `internal/resvg/resvg.go` 中各平台 CGO 链接选项；
 - Docker 构建阶段和运行阶段的系统库；
+- Docker 中 Apple Color Emoji 的 Release 标签、下载地址和 SHA-256；
 - GitHub Actions 的构建矩阵和工具链；
 - README 中的环境要求及命令。
 

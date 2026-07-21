@@ -40,14 +40,13 @@ type PreparedSegment struct {
 }
 
 type TextLine struct {
-	Text     string
 	Width    float64
 	Baseline float64
+	Runs     []textRun
 }
 type TextLayout struct {
-	Rect     Rect
-	FontSize float64
-	Lines    []TextLine
+	Rect  Rect
+	Lines []TextLine
 }
 type SegmentLayout struct {
 	Type, Kind, DataURI string
@@ -68,8 +67,6 @@ type RowLayout struct {
 }
 type CardLayout struct {
 	Width, Height float64
-	Theme         Theme
-	FontFamily    string
 	Rows          []RowLayout
 }
 
@@ -86,7 +83,7 @@ func containSize(width, height, maxWidth, maxHeight float64) (float64, float64) 
 }
 
 func (e *LayoutEngine) Layout(messages []PreparedMessage) CardLayout {
-	card := CardLayout{Width: cardPadX * 2, Height: cardPadY * 2, Theme: lightTheme, FontFamily: e.fonts.Family()}
+	card := CardLayout{Width: cardPadX * 2, Height: cardPadY * 2}
 	availableContent := cardMaxWidth - cardPadX*2 - avatarSize - rowGap
 	maxRowWidth := 0.0
 	rows := make([]RowLayout, 0, len(messages))
@@ -181,7 +178,7 @@ func (e *LayoutEngine) layoutRow(message PreparedMessage, maxContentWidth, y flo
 	return RowLayout{
 		Height: rowHeight,
 		Avatar: Rect{X: cardPadX, Y: y, W: avatarSize, H: avatarSize}, AvatarDataURI: message.Avatar.DataURI,
-		Nickname: TextLayout{Rect: Rect{X: contentX, Y: y, W: nicknameWidth, H: nicknameHeight}, FontSize: nicknameSize, Lines: []TextLine{nicknameLine}},
+		Nickname: TextLayout{Rect: Rect{X: contentX, Y: y, W: nicknameWidth, H: nicknameHeight}, Lines: []TextLine{nicknameLine}},
 		Bubble:   BubbleLayout{Rect: Rect{X: contentX, Y: bubbleY, W: bubbleWidth, H: bubbleHeight}},
 		Segments: segments,
 	}
@@ -329,9 +326,9 @@ func (e *LayoutEngine) wrapText(text string, maxWidth, size, lineHeight float64)
 func (e *LayoutEngine) textLine(text string, size, lineHeight float64) TextLine {
 	metrics := e.fonts.measureLine(text, size)
 	return TextLine{
-		Text:     text,
 		Width:    metrics.Width,
 		Baseline: (lineHeight-(metrics.Ascent-metrics.Descent))/2 + metrics.Ascent,
+		Runs:     metrics.Runs,
 	}
 }
 

@@ -11,7 +11,7 @@
 - 支持普通图片、emoji、sticker 的尺寸规则以及 GIF/APNG 动画；
 - 固定使用浅色主题；
 - 单张远程图片加载失败时继续生成引用图；
-- 根据系统字体 family 自动选择苹方、微软雅黑或 Noto Sans CJK。
+- 根据系统字体 family 自动选择苹方、微软雅黑或 Noto Sans CJK，并使用系统 emoji 字体渲染 Unicode 表情。
 
 ## 项目结构
 
@@ -40,6 +40,10 @@
 3. `Noto Sans CJK SC`
 
 macOS 通常自带苹方，Windows 通常自带微软雅黑。Linux 和 Docker 建议安装 Noto CJK。三者均不存在时，程序会明确启动失败，不会静默换成未知字体。
+
+Unicode emoji 使用系统中的 `Apple Color Emoji` 或 `Segoe UI Emoji`。macOS 和 Windows 通常已分别内置这两种字体；Linux 需要安装 `Apple Color Emoji`，找不到任一候选字体时程序会在启动阶段失败。
+
+Dockerfile 从 [`samuelngs/apple-emoji-ttf`](https://github.com/samuelngs/apple-emoji-ttf) 当前最新 Release 安装 `AppleColorEmoji-Linux.ttf`，并校验 GitHub Release 提供的 SHA-256。Apple emoji 图像资产不属于该仓库的 MIT 许可证，部署者需自行确认其使用和分发条件。
 
 ## Windows amd64 构建
 
@@ -161,7 +165,7 @@ Dockerfile 使用三个阶段：
 
 1. Rust 阶段编译 resvg 0.47.0；
 2. Go 阶段启用 CGO 并链接静态库；
-3. Alpine 运行阶段安装 CA 证书、fontconfig、Noto CJK 字体及 GCC/unwind 运行库。
+3. Alpine 运行阶段安装 CA 证书、fontconfig、Noto CJK、Apple Color Emoji 字体及 GCC/unwind 运行库。
 
 ```bash
 docker build -t qq-quote-generator .

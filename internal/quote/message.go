@@ -6,27 +6,13 @@ import (
 	"strings"
 )
 
-type Theme struct {
-	CardBG    string
-	AvatarBG  string
-	NameColor string
-	BubbleBG  string
-	TextColor string
-}
-
-var lightTheme = Theme{
-	CardBG: "#f7f8fb", AvatarBG: "#d9dee8", NameColor: "#667085",
-	BubbleBG: "#ffffff", TextColor: "#242937",
-}
-
-func safeImageURL(raw string) string {
-	raw = strings.TrimSpace(raw)
-	lower := strings.ToLower(raw)
-	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") || strings.HasPrefix(lower, "data:image/") {
-		return raw
-	}
-	return ""
-}
+const (
+	cardBackground   = "#f7f8fb"
+	avatarBackground = "#d9dee8"
+	nicknameColor    = "#667085"
+	bubbleBackground = "#ffffff"
+	messageColor     = "#242937"
+)
 
 func resolveAvatar(msg Message) string {
 	if msg.Avatar != "" {
